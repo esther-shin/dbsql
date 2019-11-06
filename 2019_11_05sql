@@ -1,0 +1,290 @@
+--복습
+--년원 파라미터가 주어졌을 때 해당 년월의 일수를 구하는 문제
+--201911 -->30/201912-->31
+
+
+--한달 더한 후 원래 값을 빼면 = 일수
+--마지막 날짜 구한 후 -->dd만 추출
+SELECT :yyyymm as param, TO_CHAR(LAST_DAY(TO_DATE(:YYYYMM,'YYYYMM')),'DD')dt
+FROM dual;
+
+desc emp;
+
+
+explain plan for 
+SELECT *
+FROM emp
+WHERE empno ='7369';
+
+SELECT *
+FROM TABLE(DBMS_XPLAN.DISPLAY);
+
+--------------------------------------------------------------------------
+| Id  | Operation         | Name | Rows  | Bytes | Cost (%CPU)| Time     |
+--------------------------------------------------------------------------
+|   0 | SELECT STATEMENT  |      |     1 |    87 |     2   (0)| 00:00:01 |
+|*  1 |  TABLE ACCESS FULL| EMP  |     1 |    87 |     2   (0)| 00:00:01 |
+--------------------------------------------------------------------------
+ 
+Predicate Information (identified by operation id):
+---------------------------------------------------
+ 
+   1 - filter("EMPNO"=7369)
+ 
+Note
+-----
+   - dynamic sampling used for this statement (level=2)
+   
+   
+   
+explain plan for 
+SELECT *
+FROM emp
+WHERE TO_CHAR(empno) ='7369';
+
+SELECT *
+FROM TABLE(DBMS_XPLAN.DISPLAY);
+--==========FROM TABLE까지 같이 써줘야 EXPLAIN됨
+
+--
+SELECT empno, ename, sal, to_char(sal, '999,999') sal_fmt
+FROM emp;
+
+--소수점 표현
+SELECT empno, ename, sal, to_char(sal, '999,999.99') sal_fmt
+FROM emp;
+
+--원 표시, 소문자로 써도 가능.
+SELECT empno, ename, sal, to_char(sal, 'L999,999') sal_fmt
+FROM emp;
+
+--앞에 margin값 넣기.
+SELECT empno, ename, sal, to_char(sal, 'l000999,999') sal_fmt
+FROM emp;
+
+--function null
+--nvl(coll, coll이 null일 경우 대체할 값)
+SELECT empno,ename,comm, nvl(comm, 0)nvl_comm
+FROM emp;
+
+
+SELECT empno,ename,sal,comm,nvl(comm, 0)nvl_comm,
+    sal+comm, sal+nvl(comm,0)
+FROM emp;
+
+
+SELECT empno,ename,sal,comm,nvl(comm, 0)nvl_comm,
+    sal+comm, sal+nvl(comm,0),nvl(sal+comm,0)
+FROM emp;
+
+
+--nvl2(coll, coll이 null이 아닐 경우 표현되는 값, coll null일 경우 표현 되는 값)
+SELECT empno,ename, sal, comm, nvl2(comm,comm,0)+sal
+FROM emp;
+
+
+--nullif(expr1, expr2)
+--expr1 =expr2같으면 null
+--else : expr1
+--sal의 1250 이 같을 경우 null
+SELECT empno, ename, sal, comm, NULLIF(sal,1250)
+FROM emp;
+
+--coalesce(expr1, expr2, expr3....)
+--함수 인자 중 가장 null이 아닌 첫번째 인자.
+SELECT empno, ename,sal,comm,coalesce(comm,sal)
+FROM emp;
+
+
+--function fn4
+SELECT empno, ename, mgr,nvl(mgr,9999)mgr_n
+FROM emp;
+
+SELECT empno,ename,mgr, nvl(mgr,9999)mrg_n,
+nvl2(mgr,mgr,9999)mgr_n,
+coalesce(mgr,9999)mgr_n
+from emp;
+
+select userid,usernm,reg_dt,
+from users;
+
+--case when
+SELECT empno, ename,job, sal,
+    case
+        when job = 'SALESMAN' then sal*1.05
+        when job = 'MANAGER' then sal*1.10
+        when job = 'PRESIDENT' then sal*1.20
+        else sal 
+    end  case_sal
+FROM emp;
+
+
+--decode(col, search1,return1,search2, return2,....default)
+--다 대문자로 써줘여 됨
+SELECT empno, ename, job,sal,
+        DECODE(job,'SALESMAN',sal*1.05,
+        'MANAGER',sal*1.10,
+        'PRESIDENT',sal*1.20, 
+                                sal)decode_sal
+FROM emp;
+
+--function cond1
+
+desc emp;
+
+SELECT empno, ename,
+    DECODE(deptno,'10','ACCOUNTING',
+    20,'RESEARCH',
+    30,'SALES',
+    40,'OPERATIONS',
+    'DDIT'
+   )dname
+FROM emp;
+
+
+SELECT empno, ename,job, 
+    case
+        when deptno = 10 then 'ACCOUNTING' 
+        when deptno = 20 then 'RESEARCH'
+        when deptno = 30 then 'SALES'
+        when deptno = 40 then 'OPERATIONS'
+        
+        else  'ddit'
+    end  dname--카테고리 명
+FROM emp;
+
+--건강 검진 대상자 확인
+SELECT empno,ename,hiredate,
+    case
+        when hiredate >= to_date('1981/3/17','YYYY/MM/DD') then '건강 검진 대상자'
+        else '건강 검진 비대상자'
+    end contacttodoctor
+FROM emp;
+
+SELECT empno,ename,hiredate,
+    case
+        when mod(to_char(hiredate, 'yy'),2)=0 then '건강 검진 비 대상자'
+        when mod(to_char(hiredate, 'yy'),2)=1 then '건강 검진 대상자'
+        else 'ddit'
+    end as contact
+FROM emp;
+
+
+SELECT empno,ename,hiredate,   
+    DECODE(hiredate,to_char('MOD(sal,2)reminder=0','YY'),'건강 검진 비대상자',
+    to_char('MOD(sal,2)reminder == 1','YY'), '건강검진 대상자',
+   )contacttodoctor
+   
+FROM emp;
+
+SELECT empno,ename,hiredate,   
+    DECODE(
+    mod(to_char(hiredate, 'yy'),2) ,0 , '건강 검진 비 대상자',
+    1,'건강검진 대상자'
+   )contacttodoctor
+FROM emp;
+
+SELECT empno, ename,
+    DECODE(deptno,'10','ACCOUNTING',
+    20,'RESEARCH',
+    30,'SALES',
+    40,'OPERATIONS',
+    'DDIT'
+   )dname
+FROM emp;
+
+
+--올해는 짝수인가? 홀수 인가?
+--1. 올해 년도 구하기(date--> to_char(date,format))
+--2. 올해 년도가 짝수인지 계산
+--어떤 수를 2로 나누면 나머지는 항상 2보다 작다.
+--2로 나눌 경우 나머지는 0,1
+--mod(대상, 나눌 값)
+select mod(to_char(sysdate,'yyyy'),2)
+from dual;
+
+--emp 테이블에서 입사일자가 홀수년인지 짝수년인지 확인
+SELECT empno,ename, hiredate,
+    case 
+    when  mod(to_char(sysdate,'yyyy'),2)= mod(to_char(hiredate,'yyyy'),2)
+        then '건강검진 대상자'
+        else '건강검진 비대상자'
+        end as contacttodoctor
+from emp;
+
+
+SELECT  to_char(SYSDATE,'yyyy')
+FROM dual;
+
+describe users;
+
+select userid,usernm,reg_dt,
+    case
+        when mod(to_char(sysdate,'yyyy'),2)=mod(to_char(reg_dt,'yyyy'),2)
+        then '건강검진 대상자'
+        else '건강검진 비대상자'
+    end as contacttodoctor
+    
+from users;
+
+select*
+from emp;
+
+--그룹함수(AVG, MAX, MIN, SUM, COUNT)
+--그룹함수는 null값을 계산대상에서 제외한다.
+--sum(comm),count(*),count(mgr)
+--직원 중 가장 높은 급여를 받는 사람의 급여
+--직원중 가장 낮은 급여를 받는 사람의 급여
+--직원의 급여 평균(소수점 둘째 자리 까지만 나오게--> 소수점 3번째 자리에서 반올림)
+--직원 급여의 전체함
+--직원의 수
+SELECT MAX(SAL) MAX_SAL,MIN(SAL)MIN_SAL
+FROM emp;
+
+SELECT deptno,MAX(SAL) MAX_SAL, MIN(SAL)MIN_SAL,
+    ROUND(AVG(sal),2) avg_sal,
+    SUM(sal)sum_sal,
+    count(*) emp_cnt,
+    count(sal) sal_cnt,
+    count(mgr)mgr_cnt,
+    sum(comm) comm_sum
+FROM emp
+GROUP BY deptno;
+
+--부서별 가장 높은 급여를 받는 사람의 급여
+--group by 절에 기술되지 않은 컬럼이 select절에 기술될 경우 에러.
+SELECT deptno, MAX(sal)max_sal
+FROM emp
+GROUP BY deptno;
+
+--group by에 나온 컬럼과 select의 컬럼이 같아야 됨.
+SELECT deptno,MAX(sal)max_sal,MIN(ename)
+FROM emp
+GROUP BY deptno;
+SELECT *
+FROM emp;
+
+
+SELECT empno, ename,sal
+FROM emp;
+
+--부서별 최대 급여
+SELECT deptno, MAX(sal) max_sal
+FROM EMP
+GROUP BY deptno
+HAVING MAX(sal)>3000;
+
+
+--fn grp1
+select MAX(sal)max_sal, MIN(sal)min_sal, trunc(AVG(sal) ,2),
+        SUM(sal)sum_sal,count(mgr)count_manager,count(*)count_all
+from emp;
+
+--fn grp2
+SELECT deptno, MAX(sal)max_sal, MIN(sal)min_sal,trunc(AVG(sal) ,2), 
+SUM(sal)sum_sal,count(sal)count_sal,count(*)count_all, count(mgr) 
+from emp
+GROUP BY deptno;
+
+select *
+from emp;
