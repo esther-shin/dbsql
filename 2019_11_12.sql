@@ -245,7 +245,7 @@ DROP TABLE dept_test;
 CREATE TABLE dept_test(
     deptno NUMBER(2) PRIMARY KEY,
     dname VARCHAR(14) NOT NULL,
-    loc VARCHAR(13)
+    loc VARCHAR(13) --BB
 
 );
 INSERT INTO dept_test VALUES (1, 'ddit','daejeon');
