@@ -1,0 +1,465 @@
+--smith, ward 가 속하는 부서의 직원들 조회
+SELECT *
+FROM emp
+WHERE deptno in(10,20);
+
+SELECT *
+FROM emp
+WHERE deptno=20
+    OR deptno=30;
+    
+SELECT *
+FROM emp
+WHERE deptno in(SELECT deptno 
+                FROM emp 
+                WHERE ename IN(:name1,:name2) );
+                
+--ANY:set중에 만족하는게 하나라도 있으면 참으로 (크기비교)
+--SMITH,WARD 두사람의 급여 중에서 둘 중하나의 조건이라도 적합한 게 있을때.
+SELECT *
+FROM EMP
+WHERE SAL< ANY(SELECT sal --800,1250--1250보다 작은 급여
+                FROM emp
+                WHERE ename IN('SMITH' ,'WARD'));
+SELECT MIN(SAL), ENAME
+FROM EMP
+WHERE ENAME IN ('SMITH','WARD')
+GROUP BY ENAME;
+
+--SMITH와 WARD보다 급여가 높은 직원 조회
+--SMITH 보다도 급여가 높고 WARD보다도 급여가 높은 사람(AND)
+SELECT *
+FROM EMP
+WHERE SAL> all(SELECT sal --800,1250--1250보다 높은 급여
+                FROM emp
+                WHERE ename IN('SMITH' ,'WARD'));
+                
+                
+                
+--not in
+
+--관리자의 직원 정보
+--1. 관리자인 사람만 조회
+--.mgr 컬럼에 값이 나오는 직원
+--distinct로 중복된 값을 없도록 한다.
+SELECT DISTINCT mgr 
+FROM emp
+ORDER BY mgr;
+
+SELECT *
+FROM EMP;
+
+SELECT DISTINCT mgr 
+FROM emp;
+
+--어떤 직원의 관리자 역할을 하는 직원 정보 조회
+SELECT *
+FROM emp
+WHERE empno in(7839, 7782,7698,7902,7566,7788);
+--KING-JHONS-SCOTT
+
+--subquery 
+SELECT *
+FROM emp
+WHERE empno in(SELECT  mgr 
+                FROM emp);
+SELECT  mgr 
+FROM emp;
+
+      
+--관리자가 아닌 사람으로 
+SELECT *
+FROM emp        --7839, 7782,7698,7902,7566,7788
+WHERE empno not in(SELECT mgr 
+                FROM emp
+                WHERE mgr is not null);
+
+SELECT *
+FROM emp;
+
+
+SELECT mgr
+FROM emp
+WHERE mgr is not null;
+order by mgr;
+
+--관리자 역할을 하지 않은 평 사원 정보 조회
+--단 not in 연산자 사용시 set 에 null이 포함될 경우 정상적으로 동작하지 않는다.
+--null처리 함수나 where절을 통해 null값을 처리한 이후 사용.
+SELECT *
+FROM emp        --7839, 7782,7698,7902,7566,7788
+WHERE empno not in(SELECT nvl(mgr,-9999)
+                FROM emp);
+
+SELECT nvl(mgr,-9999)
+FROM emp;
+
+
+--pairwise
+--사번 7499,7782직원의 관리자, 부서 번호 조회
+--7698 30
+--7839 10
+--직원중에 관리자와 부서번호가 (7698,30)이거나 (7839,10)인 사람
+--MGR, DEPTNO 컬럼을 [동시]에 만족시키는 직원 정보 조회
+SELECT *
+FROM emp
+WHERE(mgr,deptno)IN(
+                    SELECT mgr,deptno
+                    FROM emp
+                    WHERE empno IN(7499,7782));
+
+SELECT mgr,deptno
+                    FROM emp
+                    WHERE empno IN(7499,7782);
+                    
+                    
+
+
+--7698 30
+--7839 10 
+--(7698,30),(7698,10),(7639,30),(7839,10)
+--(7693,30),(7839,10)
+SELECT *
+FROM emp
+WHERE mgr IN(SELECT mgr
+                    FROM emp
+                    WHERE empno IN(7499,7782))
+AND deptno IN(SELECT deptno
+                    FROM emp
+                    WHERE empno IN(7499,7782));
+                    
+SELECT mgr
+                    FROM emp
+                    WHERE empno IN(7499,7782);
+                    
+                    SELECT deptno
+                    FROM emp
+                    WHERE empno IN(7499,7782);
+
+
+
+--scalar subquery : select 절에 등장하는 서브 쿼리(단 값이 하나의 행, 하나의 컬럼)
+--직원의 소속 부서명을 join을 사용하지 않고 조회
+SELECT empno, ename,deptno,'부서명'dname
+FROM emp;
+
+SELECT dname
+FROM dept
+WHERE deptno =20;
+
+SELECT empno, ename,deptno,(SELECT dname
+                            FROM dept
+                            WHERE deptno = emp.deptno)dname
+FROM emp;
+
+
+
+
+
+
+select deptno, dname, loc
+from dept;
+
+
+--sub4 데이터 생성
+select*
+from dept;
+
+--값 집어 넣기
+insert into dept values (99,'ddit','daejeon');
+commit;
+------
+
+select*
+from emp
+order by deptno;
+
+SELECT deptno, dname
+from emp;
+
+select*
+from dept;
+
+
+--sub4
+select *
+from dept
+where deptno not in(SELECT  deptno
+FROM emp);
+--sub5
+
+
+select *
+from cycle --pid:100,400
+where cid=1;
+
+select *
+from product
+where pid in(100,400);
+
+select *
+from product
+where pid not in(select pid
+            from cycle --pid:100,400
+            where cid=1);
+
+
+select *
+from cycle;  --pid:100,200
+where cid=2;
+
+select *
+from cycle  --pid:100,400 
+where cid =1;
+-------------
+
+
+
+
+select *
+from product;
+
+select*
+from product
+where pid not in 
+(select pid
+from cycle
+where cid=1);
+
+select pid
+from cycle
+where cid=1;
+
+
+select *
+from product 
+where pid not in(select pid
+               from cycle
+                where cid=1);
+
+--sub6
+select *
+from cycle
+where cid in
+where cid=2;
+
+--답
+select *   --100,400
+from cycle
+where cid=1
+--and pid=100;
+and pid in(select pid from cycle where cid=2);
+--2번 고객이 먹는 제품
+------서브쿼리
+select (select sysdate from dual)sdt
+from dual;
+
+SELECT (SELECT dept.dname
+    FROM dept,emp
+    WHERE dept.deptno = emp.deptno)dname, emp.empno, ename
+    FROM emp;
+
+SELECT *
+FROM dept;
+SELECT *
+FROM emp;
+-----
+select *    --100,200
+from cycle
+where cid=2;
+
+select*
+from cycle;
+
+--sub7
+
+select*
+from cycle  --pid:100,200
+where cid=2;
+
+select*
+from cycle;  --pid:100,400
+where cid=1;
+
+select*
+from product;
+
+select*
+from customer;
+
+
+SELECT a.cid,c.cnm, p.pid, p.pnm,a.day,a.cnt
+FROM(SELECT *   --100,400
+    FROM cycle
+    WHERE cid=1
+    --and pid=100;
+    AND pid IN(SELECT pid 
+               FROM cycle
+               WHERE cid=2)) a, customer c,product p
+    --2번 고객이 먹는 제품)a
+WHERE a.cid = c.cid 
+AND p.pid= a.pid;
+
+
+
+
+
+--EXISTS MAIN쿼리에 컬럼을 사용해서 SUBQUERY에 만족하는 조건이 있는지 체크
+--만족하는 값이 하나라도 존재하면 더이상 진행하지 않고 멈추기 때문에
+--성능면에서 유리
+
+--MGR가 존재하는 직원 조회
+
+SELECT *
+FROM emp a
+WHERE EXISTS(SELECT 'X'
+             FROM emp
+             WHERE empno = a.mgr);
+
+             
+--MGR가 존재하지 않는 직원 조회
+
+SELECT *
+FROM emp a
+WHERE not EXISTS(SELECT  'X'
+             FROM emp
+             WHERE empno = a.mgr);
+
+--sub8.mgr가 존재하는 직원.(subquery사용 없이)
+select *
+from emp
+where mgr is not null;
+
+--부서에 소속된 직원이 있는 부서 정보 조회
+select *
+from dept
+where exists(select 'x'
+                from emp
+                where deptno = dept.deptno);
+
+select*
+from emp;
+
+--sub9
+SELECT *
+FROM cycle;
+WHERE cid=1;
+
+SELECT *
+FROM product;
+
+SELECT *
+FROM product
+WHERE NOT EXISTS(SELECT *
+                 FROM cycle
+                 WHERE product.pid =cycle.pid AND cid=1);
+
+
+
+
+select *
+from customer,product 
+where cid=1;
+
+
+
+
+--집합연산
+--사번이 7566또는 7698인 사원 조회(사번이랑, 이름)
+SELECT empno,ename
+FROM emp
+WHERE empno= 7566 OR empno =7698
+
+UNION
+--합집합
+
+--사번이 7936,7499인 사원 번호 조회(사번, 이름)
+SELECT empno,ename
+FROM emp
+WHERE empno=7369 OR empno=7499;
+
+-----------------------------------------중복 제거
+--사번이 7566또는 7698인 사원 조회(사번이랑, 이름)
+SELECT empno,ename
+FROM emp
+WHERE empno= 7566 OR empno =7698
+
+UNION
+--합집합
+--UNION: 합집합, 중복을 제거
+--      DBMS중복을 제거하기 위해 데이터를 정렬
+--(대량의 데이터에 대해 정렬시 부하)
+--UNION ALL : UNION 과 같은 개념
+--             중복을 제거하지 안고, 위 아래 집합을 결합 => 중복 가능.
+--              위 아래 집합에 중복 되는 데이터가 없다는 것을 확신하면
+--              UNION 연산자 보다 성능면에서 유리
+--사번이 7936,7499인 사원 번호 조회(사번, 이름)
+SELECT empno,ename
+FROM emp
+WHERE empno=7566 OR empno =7698;
+
+--UNION ALL(중복 허용, 위 아래 집합을 합치기만 한다)-------------------------
+SELECT empno,ename
+FROM emp
+WHERE empno= 7566 OR empno =7698
+
+UNION ALL
+--합집합
+
+--사번이 7936,7499인 사원 번호 조회(사번, 이름)
+SELECT empno,ename
+FROM emp
+WHERE empno=7566 OR empno =7698;
+
+--INTERSECT(교집합 :  위아래 집합간 공통 데이터)
+
+SELECT empno,ename
+FROM emp
+WHERE empno IN (7566,7698,7369)
+
+INTERSECT
+
+SELECT empno,ename
+FROM emp
+WHERE empno in(7566,7698,7499);
+
+--MINUS(차집합: 위집합에만 속하고 아래 집합을 제거)
+
+SELECT empno,ename
+FROM emp
+WHERE empno IN (7566,7698,7369)
+
+MINUS
+
+SELECT empno,ename
+FROM emp
+WHERE empno in(7566,7698,7499);
+
+--위 아래 순서 바꾸기
+SELECT empno,ename
+FROM emp
+WHERE empno in(7566,7698,7499)
+
+MINUS
+
+SELECT empno,ename
+FROM emp
+WHERE empno IN (7566,7698,7369);
+
+SELECT 1 n, 'X'm
+from dual
+union
+select 2, 'y'
+from dual
+order by m desc;
+--order by는 가운데 에 사용 불가.
+
+
+
+
+
+SELECT *
+FROM USER_CONSTRAINTS
+WHERE OWNER ='PC13'
+AND TABLE_NAME IN('PROD','LPROD')
+AND CONSTRAINT_TYPE IN('P','R');
