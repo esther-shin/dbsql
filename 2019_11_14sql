@@ -1,0 +1,244 @@
+--제약 조건 활성화/ 비활성화
+--어떤 제약 조건을 활성화(비활성화) 시킬 대상???
+
+--emp fk제약(dept테이블에 deptno컬럼 참조)
+--FK_EMP_DEPT비활성화
+ALTER TABLE emp ADD constraint fk_emp_dept foreign key (deptno)
+references dept (deptno);
+ALTER TABLE emp DISABLE CONSTRAINT fk_emp_dept;
+
+--제약 조건에 위배되는 데이터가 들어 갈 수 있지 않을까?
+INSERT INTO emp(empno, ename, deptno)
+VALUES (9999,'brown',80);
+
+--FK_EMP_DEPT 활성화
+ALTER TABLE emp ENABLE CONSTRAINT fk_emp_dept;
+
+--제약조건에 위배되는 데이터(소속 부서번호가 80번인 데이터)가 존재하여 제약조건 활성화 불가
+DELETE emp
+WHERE empno=9999;
+commit;
+--FK_EMP_DEPT 활성화
+ALTER TABLE emp ENABLE CONSTRAINT fk_emp_dept;
+
+--현재 계정에 존재하는 테이블 목록 view
+--현재 계정에 존재하는 제약 조건 view :USER_CONSTRAINTS
+--현재 계정에 존재하는 제약조건의 컬럼 view : USER_CONS_COLUMNS
+SELECT *
+FROM USER_CONSTRAINTS
+WHERE TABLE_NAME ='EMP';
+
+--FK_EMP_DEPT
+SELECT *
+FROM USER_CONS_COLUMNS
+WHERE CONSTRAINT_NAME ='FK_EMP_DEPT';
+
+--테이블에 설정된 제약조건 조회 ( VIEW 조인)
+--테이블 명/제약조건 명/컬럼 명/ 컬럼 포지션
+
+SELECT *
+FROM user_constraints a, user_cons_columns b
+WHERE a.constraint_name =b.constraint_name
+AND a.constraint_type='P'; --PRIMARY KEY만 조회
+
+SELECT a.table_name, a.constraint_name,b.column_name,b.position
+FROM user_constraints a, user_cons_columns b
+WHERE a.constraint_name =b.constraint_name
+AND a.constraint_type='P' --PRIMARY KEY만 조회;
+ORDER BY a.table_name, b.position;
+
+
+--emp테이블과 8가지 컬럼 주석 달기
+--EMPNO ENAME JOB MGR HIREDATE SAL COMM DEPTNO
+
+--테이블 주석 view :USER_TAB_COMMENTS
+
+SELECT *
+FROM user_tab_comments
+WHERE table_name='EMP';
+
+
+--emp 테이블 주석
+COMMENT ON TABLE emp is'사원';
+
+--emp 테이블의 컬럼 주석
+SELECT *
+FROM user_col_comments
+WHERE table_name ='EMP';
+
+--EMPNO ENAME JOB MGR HIREDATE SAL COMM DEPTNO
+COMMENT ON COLUMN emp.empno IS'사원번호';
+COMMENT ON COLUMN emp.ename IS'이름';
+COMMENT ON COLUMN emp.JOB IS'담당업무';
+COMMENT ON COLUMN emp.mgr IS'관리자사번';
+COMMENT ON COLUMN emp.hiredate IS'입사일자';
+COMMENT ON COLUMN emp.sal IS'급여';
+COMMENT ON COLUMN emp.comm IS'상여';
+COMMENT ON COLUMN emp.deptno IS'소속부서번호';
+
+
+--TABLE comment1
+SELECT a.table_name,a.table_type,a.comments AS tab_comment,b.column_name,b.comments col_comment
+FROM user_tab_comments a, user_col_comments b
+WHERE a.table_name IN('CYCLE','CUSTOMER','PRODUCT','DAILY')
+AND a.table_name=b.table_name;
+
+
+SELECT*
+FROM user_tab_comments;
+
+
+SELECT*
+FROM user_col_comments;
+
+SELECT *
+FROM user_tab_comments a, user_col_comments b
+WHERE a.table_name=b.table_name;
+
+
+desc emp;
+--VIEW생성 (emp테이블에서 sal, comm두개 컬럼을 제외한다.)
+CREATE OR REPLACE VIEW v_emp AS
+SELECT empno, ename,job, mgr, hiredate, deptno
+FROM emp;
+
+
+--INLINE VIEW
+SELECT *
+FROM(SELECT empno, ename,job, mgr,hiredate, deptno
+    FROM emp);
+    
+--view(위 인라인 뷰와 동일하다)
+SELECT *
+FROM v_emp;
+
+--조인된 쿼리 결과를 view로 생성 :v_emp_dept
+--emp,dept: 부서명, 사원번호, 사원명, 담당업무, 입사일자
+
+CREATE OR REPLACE VIEW v_emp_dept as
+SELECT a.dname,b.empno, b.ename, b.job, b.hiredate
+FROM dept a, emp b
+WHERE a.deptno = b.deptno;
+
+SELECT *
+FROM v_emp_dept;
+
+--view 제거
+DROP VIEW v_emp;
+
+
+--view를 구성하는 테이블의 데이터를 변경하면 view에도 영향이 간다.
+--dept 30-sales
+SELECT *
+FROM v_emp_dept;
+
+--dept테이블의 sales -->market sales 
+UPDATE dept SET dname='MARKET SALES'
+WHERE deptno=30;
+ROLLBACK;
+
+--hr계정에서 v_emp_dept view 조회 권한을 준다.
+GRANT SELECT ON v_emp_dept TO hr;
+
+--sequence 생성(게시글 번호 부여용 시퀸스)
+CREATE SEQUENCE seq_post
+INCREMENT BY 1
+START WITH 1;
+
+SELECT seq_post.nextval, seq_post.currval
+FROM dual;
+
+SELECT seq_post.currval
+FROM dual;
+
+--실행 안됨.
+SELECT *
+FROM post
+WHERE reg_id='brown'
+AND title ='하하하하 재미있다'
+AND reg_dt =TO_DATE('2019/11/14 15:40:15','YYYY/MM/DD HH24:MI:SS');
+
+SELECT *
+FROM post 
+WHERE post_id=1;
+
+--table:pid,pnm
+--pk_product :pid
+SELECT pid
+FROM post 
+WHERE post_id=1;
+
+--index
+--rowid: 테이블 행의 물리적 주소, 해당 주소를 알면
+--빠르게 테이블에 접근하는 것이 가능하다.
+select product.*,ROWID
+FROM product;
+
+
+select product.*,ROWID
+FROM product
+WHERE ROWID='AAAb4VAABAAAaUxAAB';
+
+
+
+
+
+
+
+
+
+--sequence 유일한 값을 만들어 낼때 . 그래서 primary column에 들어올 수 있다.
+
+--게시글 첨부파일 .. 
+--시퀀스:중복되지 않는 정수 값을 리터해주는 객체
+--1..,2..,3...
+--1. 유일한 값을 만드는 거 중 key table을 미리 만들어서 한 개값만 가져오지 않도록 하는 거..
+--마지막거.. sequence를 만들어 놓고 조회를 하는거..
+DESC emp_test;
+DROP TABLE emp_test;
+SELECT *
+FROM emp_test;
+
+CREATE TABLE emp_test(
+            empno NUMBER(4) PRIMARY KEY,
+            ename VARCHAR2(15)
+);
+--3.sequence마지막 방법...
+CREATE SEQUENCE sep_emp_test;
+INSERT INTO emp_test VALUES(중복되지 않는 값, 'brown');
+
+INSERT INTO emp_test VALUES(sep_emp_test.nextval, 'brown');
+--nextval 자동으로 다음 번호로 넘어가서 empno값이 증가하게 된다..
+
+--dual이기 때문에 nextval때문에 empno의 수는 증가지만 ename값이 없어서 다음에 
+--insert into로 추가했을 경우 수가 바로 이어지지 않는다.
+select sep_emp_test.nextval
+from dual;
+
+--sequence는 rollback이 안됨
+--empno이 primary key이기 때문에 
+SELECT *
+FROM emp_test;
+--인덱스 외에도 rowid를 같이 넣어줘서 빠르게 접근하도록 도와줌.. 
+
+--실행계획을 통한 인덱스 사용여부 확인;
+--emp 테이블에 empno컬럼 기준으로 인텍스가 없을때 
+ALTER TABLE emp DROP CONSTRAINT pk_emp;
+
+EXPLAIN PLAN FOR 
+SELECT *
+FROM emp
+WHERE empno =7369;
+
+--인덱스가 없기 때문에 empno=7369인 데이터를 찾기 위해
+--emp 테이블을 전체를 찾아봐야 한다.-> table full scan.
+
+SELECT *
+FROM table(dbms_xplan.display);
+--들여 쓰기가 되어있는 거는 자식 모드.. 
+--1번 읽고 0번으로 읽는 거..
+--table access full테이블 전체를 뒤진다음에 select statement를 한다.
+--filter predicate//access predicate. 읽기 전인가 읽은 후인가..
+--다 읽은 다음에.. 조건에 만족하는 사원 번호 7369인 것만 읽고 서 나머지는 버린다..
+
+
